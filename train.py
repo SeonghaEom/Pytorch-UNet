@@ -17,16 +17,17 @@ from utils.dice_score import dice_loss
 from evaluate import evaluate
 from unet import UNet
 
-# dir_img = Path('./data/echocardiography/train/A2C')
-# dir_mask = Path('./data/echocardiography/train/A2C')
-# dir_val_img = Path('./data/echocardiography/validation/A2C')
-# dir_val_mask = Path('./data/echocardiography/validation/A2C')
-dir_img = Path('./data/echocardiography/train/A4C')
-dir_mask = Path('./data/echocardiography/train/A4C')
-dir_val_img = Path('./data/echocardiography/validation/A4C')
-dir_val_mask = Path('./data/echocardiography/validation/A4C')
-dir_checkpoint = Path('./checkpoints_A4C/')
-# dir_checkpoint = Path('./checkpoints')
+dir_checkpoint = Path('./checkpoints_A2C')
+dir_img = Path('./data/echocardiography/train/A2C')
+dir_mask = Path('./data/echocardiography/train/A2C')
+dir_val_img = Path('./data/echocardiography/validation/A2C')
+dir_val_mask = Path('./data/echocardiography/validation/A2C')
+# dir_img = Path('./data/echocardiography/train/A4C')
+# dir_mask = Path('./data/echocardiography/train/A4C')
+# dir_val_img = Path('./data/echocardiography/validation/A4C')
+# dir_val_mask = Path('./data/echocardiography/validation/A4C')
+# dir_checkpoint = Path('./checkpoints_A4C/')
+
 
 def train_net(net,
               device,
@@ -36,7 +37,20 @@ def train_net(net,
               val_percent: float = 0.1,
               save_checkpoint: bool = True,
               img_scale: float = 0.5,
-              amp: bool = False):
+              amp: bool = False,
+              img_type: str = 'A2C'):
+    if (img_type == 'A2C'):
+        dir_checkpoint = Path('./checkpoints_A2C')
+        dir_img = Path('./data/echocardiography/train/A2C')
+        dir_mask = Path('./data/echocardiography/train/A2C')
+        dir_val_img = Path('./data/echocardiography/validation/A2C')
+        dir_val_mask = Path('./data/echocardiography/validation/A2C')
+    elif img_type =='A4C':
+        dir_img = Path('./data/echocardiography/train/A4C')
+        dir_mask = Path('./data/echocardiography/train/A4C')
+        dir_val_img = Path('./data/echocardiography/validation/A4C')
+        dir_val_mask = Path('./data/echocardiography/validation/A4C')
+        dir_checkpoint = Path('./checkpoints_A4C/')
     # 1. Create dataset
     try:
         train_set = CarvanaDataset(dir_img, dir_mask, img_scale)
@@ -165,16 +179,18 @@ def train_net(net,
 
 def get_args():
     parser = argparse.ArgumentParser(description='Train the UNet on images and target masks')
-    parser.add_argument('--epochs', '-e', metavar='E', type=int, default=20, help='Number of epochs')
+    parser.add_argument('--epochs', '-e', metavar='E', type=int, default=5, help='Number of epochs')
     parser.add_argument('--batch-size', '-b', dest='batch_size', metavar='B', type=int, default=1, help='Batch size')
     parser.add_argument('--learning-rate', '-l', metavar='LR', type=float, default=0.00001,
                         help='Learning rate', dest='lr')
     parser.add_argument('--load', '-f', type=str, default=False, help='Load model from a .pth file')
+    parser.add_argument('--type', '-t', type=str, default='A2C', help='Select image type (A2C, A4C)')
     parser.add_argument('--scale', '-s', type=float, default=0.5, help='Downscaling factor of the images')
     parser.add_argument('--validation', '-v', dest='val', type=float, default=10.0,
                         help='Percent of the data that is used as validation (0-100)')
     parser.add_argument('--path', default='checkpoints_A4C', help='set path name for checkpoints')
     parser.add_argument('--amp', action='store_true', default=False, help='Use mixed precision')
+    
 
     return parser.parse_args()
 
@@ -210,7 +226,8 @@ if __name__ == '__main__':
                   device=device,
                   img_scale=args.scale,
                   val_percent=args.val / 100,
-                  amp=args.amp)
+                  amp=args.amp,
+                  img_type=args.type)
     except KeyboardInterrupt:
         torch.save(net.state_dict(), 'INTERRUPTED.pth')
         logging.info('Saved interrupt')
