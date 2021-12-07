@@ -1,93 +1,58 @@
-# U-Net: Semantic segmentation with PyTorch
-<a href="#"><img src="https://img.shields.io/github/workflow/status/milesial/PyTorch-UNet/Publish%20Docker%20image?logo=github&style=for-the-badge" /></a>
-<a href="https://hub.docker.com/r/milesial/unet"><img src="https://img.shields.io/badge/docker%20image-available-blue?logo=Docker&style=for-the-badge" /></a>
-<a href="https://pytorch.org/"><img src="https://img.shields.io/badge/PyTorch-v1.9.0-red.svg?logo=PyTorch&style=for-the-badge" /></a>
-<a href="#"><img src="https://img.shields.io/badge/python-v3.6+-blue.svg?logo=python&style=for-the-badge" /></a>
+# HEART DISEASE AI DATATHON 2021
 
-![input and output for a random image in the test dataset](https://i.imgur.com/GD8FcB7.png)
+# How to start
 
-
-Customized implementation of the [U-Net](https://arxiv.org/abs/1505.04597) in PyTorch for Kaggle's [Carvana Image Masking Challenge](https://www.kaggle.com/c/carvana-image-masking-challenge) from high definition images.
-
-- [Quick start](#quick-start)
-  - [Without Docker](#without-docker)
-  - [With Docker](#with-docker)
-- [Description](#description)
-- [Usage](#usage)
-  - [Docker](#docker)
-  - [Training](#training)
-  - [Prediction](#prediction)
-- [Weights & Biases](#weights--biases)
-- [Pretrained model](#pretrained-model)
-- [Data](#data)
-
-## Quick start
-
-### Without Docker
 
 1. [Install CUDA](https://developer.nvidia.com/cuda-downloads)
-
-2. [Install PyTorch](https://pytorch.org/get-started/locally/)
-
+2. [Install Pytorch](https://pytorch.org/get-started/locally/)
 3. Install dependencies
+    
+    ```bash
+    pip install -r requirements.txt
+    ```
+    
+4. Put <echocardiography>dataset into <data> directory
+
 ```bash
-pip install -r requirements.txt
+cd Pytorch-UNet
+mv echocardiography ./data
 ```
 
-4. Download the data and run training:
+1. run training
+
 ```bash
-bash scripts/download_data.sh
-python train.py --amp
+python train.py --amp --type=A4C
 ```
 
-### With Docker
-
-1. [Install Docker 19.03 or later:](https://docs.docker.com/get-docker/)
-```bash
-curl https://get.docker.com | sh && sudo systemctl --now enable docker
-```
-2. [Install the NVIDIA container toolkit:](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-```bash
-distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
-   && curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add - \
-   && curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
-sudo apt-get update
-sudo apt-get install -y nvidia-docker2
-sudo systemctl restart docker
-```
-3. [Download and run the image:](https://hub.docker.com/repository/docker/milesial/unet)
-```bash
-sudo docker run --rm --shm-size=8g --ulimit memlock=-1 --gpus all -it milesial/unet
-```
-
-4. Download the data and run training:
-```bash
-bash scripts/download_data.sh
-python train.py --amp
-```
-
-## Description
-This model was trained from scratch with 5k images and scored a [Dice coefficient](https://en.wikipedia.org/wiki/S%C3%B8rensen%E2%80%93Dice_coefficient) of 0.988423 on over 100k test images.
-
-It can be easily used for multiclass segmentation, portrait segmentation, medical segmentation, ...
+# Description
 
 
-## Usage
+fine-tuned from implementation of [U-Net in Pytorch for Kaggle's Carvana Image Masking Challenge](https://github.com/milesial/Pytorch-UNet)
+
+- 20 epochs
+- Loss function: Dice loss function
+- Image preprocessing
+- Optimizer: RMSprop
+
+# Usage
+
+
 **Note : Use Python 3.6 or newer**
 
-### Docker
+## Training
 
-A docker image containing the code and the dependencies is available on [DockerHub](https://hub.docker.com/repository/docker/milesial/unet).
-You can download and jump in the container with ([docker >=19.03](https://docs.docker.com/get-docker/)):
+name <echocardiography> dataset should be placed in ./data directory
 
-```console
-docker run -it --rm --shm-size=8g --ulimit memlock=-1 --gpus all milesial/unet
+```bash
+> cd data
+> ls
+echocardiography
+
+> cd ..
+> python train.py --amp --epochs=20 --type=A2C --load=./checkpoints_A2C/checkpoint_epoch5_2021-12-06_02:21:25_best.pth
 ```
 
-
-### Training
-
-```console
+```bash
 > python train.py -h
 usage: train.py [-h] [--epochs E] [--batch-size B] [--learning-rate LR]
                 [--load LOAD] [--scale SCALE] [--validation VAL] [--amp]
@@ -108,14 +73,59 @@ optional arguments:
   --amp                 Use mixed precision
 ```
 
-By default, the `scale` is 0.5, so if you wish to obtain better results (but use more memory), set it to 1.
+## Evaluation( with test set)
 
-Automatic mixed precision is also available with the `--amp` flag. [Mixed precision](https://arxiv.org/abs/1710.03740) allows the model to use less memory and to be faster on recent GPUs by using FP16 arithmetic. Enabling AMP is recommended.
+`python test.py --input=(input file directory) --label=(label file directory) --model=(model parameter file) --output=(output directory)` 
 
+### Required arguments
 
-### Prediction
+- input : input image file directory (ex: ./data/echocardiography/validation/A2C )
+- label: label image file directory (ex: ./data/echocardiography/validation/A2C )
+- model: model parameter file (.pth)
+- output: output mask file (both .png and .npy files) directory (ex: ./result/result_A2C)
 
-After training your model and saving it to `MODEL.pth`, you can easily test the output masks on your images via the CLI.
+### Optional arguments
+
+- no-save: whether to save output masks or not
+- scale: scale factor for input images
+
+```bash
+> python test.py -h
+usage: test.py [-h] [--model FILE] --input INPUT [INPUT ...] --label INPUT
+               [INPUT ...] --output INPUT [INPUT ...] [--no-save]
+               [--scale SCALE]
+
+Predict masks from input images
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --model FILE, -m FILE
+                        Specify the file in which the model is stored
+  --input INPUT [INPUT ...], -i INPUT [INPUT ...]
+                        Directory of input images (.png files)
+  --label INPUT [INPUT ...], -l INPUT [INPUT ...]
+                        Directory of label images (.npy files)
+  --output INPUT [INPUT ...], -o INPUT [INPUT ...]
+                        Directory of output images that will be produced
+                        (.png, .npy files)
+  --no-save, -n         Do not save the output masks
+  --scale SCALE, -s SCALE
+                        Scale factor for the input images
+```
+
+For example,
+
+`python test.py --input=./data/echocardiography/validation/A2C --label=./data/echocardiography/validation/A2C --model=./checkpoints_A2C/checkpoint_epoch5_2021-12-06_02:21:25_best.pth --output=./result/result_A2C`
+
+![Untitled](HEART%20DISEASE%20AI%20DATATHON%202021%20b8524490576948ac8f4f3fbeed956133/Untitled.png)
+
+`python test.py --input=./data/echocardiography/validation/A4C --label=./data/echocardiography/validation/A4C --model=./checkpoints_A4C/checkpoint_epoch7_2021-12-06_02:49:59_best.pth --output=./result/result_A4C`
+
+![Untitled](HEART%20DISEASE%20AI%20DATATHON%202021%20b8524490576948ac8f4f3fbeed956133/Untitled%201.png)
+
+## Prediction
+
+After training your model and saving it to `MODEL.pth`, you can easily test the output masks on your images via the CLI.
 
 To predict a single image and save it:
 
@@ -125,7 +135,7 @@ To predict a multiple images and show them without saving them:
 
 `python predict.py -i image1.jpg image2.jpg --viz --no-save`
 
-```console
+```bash
 > python predict.py -h
 usage: predict.py [-h] [--model FILE] --input INPUT [INPUT ...] 
                   [--output INPUT [INPUT ...]] [--viz] [--no-save]
@@ -148,42 +158,22 @@ optional arguments:
   --scale SCALE, -s SCALE
                         Scale factor for the input images
 ```
-You can specify which model file to use with `--model MODEL.pth`.
 
-## Weights & Biases
+You can specify which model file to use with `--model MODEL.pth`.
 
-The training progress can be visualized in real-time using [Weights & Biases](https://wandb.ai/).  Loss curves, validation curves, weights and gradient histograms, as well as predicted masks are logged to the platform.
+For example,
 
-When launching a training, a link will be printed in the console. Click on it to go to your dashboard. If you have an existing W&B account, you can link it
- by setting the `WANDB_API_KEY` environment variable.
-
-
-## Pretrained model
-A [pretrained model](https://github.com/milesial/Pytorch-UNet/releases/tag/v2.0) is available for the Carvana dataset. It can also be loaded from torch.hub:
-
-```python
-net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True)
-```
-The training was done with a 50% scale and bilinear upsampling.
-
-## Data
-The Carvana data is available on the [Kaggle website](https://www.kaggle.com/c/carvana-image-masking-challenge/data).
-
-You can also download it using the helper script:
-
-```
-bash scripts/download_data.sh
+```bash
+python predict.py --model=./checkpoints_A2C/checkpoint_epoch5_2021-12-06_02:21:25_best.pth --input=./data/echocardiography/validation/A2C/0801.png --output=test.png
 ```
 
-The input images and target masks should be in the `data/imgs` and `data/masks` folders respectively (note that the `imgs` and `masks` folder should not contain any sub-folder or any other files, due to the greedy data-loader). For Carvana, images are RGB and masks are black and white.
+![0801.png](HEART%20DISEASE%20AI%20DATATHON%202021%20b8524490576948ac8f4f3fbeed956133/0801.png)
 
-You can use your own dataset as long as you make sure it is loaded properly in `utils/data_loading.py`.
+![test.png](HEART%20DISEASE%20AI%20DATATHON%202021%20b8524490576948ac8f4f3fbeed956133/test.png)
 
+# Original architecture
 
----
-
-Original paper by Olaf Ronneberger, Philipp Fischer, Thomas Brox:
 
 [U-Net: Convolutional Networks for Biomedical Image Segmentation](https://arxiv.org/abs/1505.04597)
 
-![network architecture](https://i.imgur.com/jeDVpqF.png)
+![Untitled](HEART%20DISEASE%20AI%20DATATHON%202021%20b8524490576948ac8f4f3fbeed956133/Untitled%202.png)
